@@ -850,6 +850,10 @@ class DataGrid
                     case '=#':
                         $filterOperatorHuman = ' has element';
                         break;
+
+                    case 'BETWEEN': // Add this case
+                        $filterOperatorHuman = ' is between';
+                        break;
                 }
 
                 echo '<span class="filterArea">';
@@ -1261,6 +1265,22 @@ class DataGrid
                         // TODO:  Actual geographic search?
                     }
 
+                    /* Is between (BETWEEN) */
+                    if (strpos($data, 'BETWEEN') !== false) {
+                        $rangeValues = explode('AND', $argument);
+                        if (count($rangeValues) == 2) {
+                            $minValue = trim($rangeValues[0]);
+                            $maxValue = trim($rangeValues[1]);
+
+                            if (isset($this->_classColumns[$columnName]['filter'])) {
+                                $whereSQL_or[] = $this->_classColumns[$columnName]['filter'] . ' BETWEEN ' . $db->makeQueryInteger($minValue) . ' AND ' . $db->makeQueryInteger($maxValue);
+                            }
+
+                            if (isset($this->_classColumns[$columnName]['filterHaving'])) {
+                                $havingSQL_or[] = $this->_classColumns[$columnName]['filterHaving'] . ' BETWEEN ' . $db->makeQueryInteger($minValue) . ' AND ' . $db->makeQueryInteger($maxValue);
+                            }
+                        }
+                    }
                 }
                 if (count($whereSQL_or) > 0)
                 {

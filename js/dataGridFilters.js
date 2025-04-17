@@ -6,7 +6,8 @@ var filter = {
             '=<': 'is less than',
             '=>': 'is greater than',
             '=#': 'has element',
-            '=@': 'Near'
+            '=@': 'Near',
+            'BETWEEN': 'is between'
         };
     },
     makePreviousSelectionBoxesUnselectable: function(
@@ -48,8 +49,10 @@ filter.FilterFactory.createFromPossibleOperatorType = function(
     filterAreaID,
     selectableColumns,
     instanceName
-) {
-    if (getFilterColumnTypesFromOptionValue(possibleOperatorType) == '=@') {
+) {
+    if (getFilterColumnTypesFromOptionValue(possibleOperatorType) === 'BETWEEN') {
+        return new filter.RangeFilter(possibleOperatorType, filterCounter, filterAreaID, selectableColumns, instanceName);
+    } else if (getFilterColumnTypesFromOptionValue(possibleOperatorType) === '=@') {
         return new filter.NearZipCodeFilter(possibleOperatorType, filterCounter, filterAreaID, selectableColumns, instanceName);
     } else {
         return new filter.DefaultFilter(possibleOperatorType, filterCounter, filterAreaID, selectableColumns, instanceName);
@@ -264,3 +267,56 @@ filter.NearZipCodeFilter.prototype.render = function() {
     ));
     return filterDiv;
 }
+
+filter.RangeFilter = function(defaultValue, filterCounter, filterAreaID, selectableColumns, instanceName) {
+    this.defaultValue = defaultValue;
+    this.filterCounter = filterCounter;
+    this.filterAreaID = filterAreaID;
+    this.selectableColumns = selectableColumns;
+    this.instanceName = instanceName;
+};
+
+filter.RangeFilter.prototype = Object.create(filter.Filter.prototype);
+
+filter.RangeFilter.prototype.render = function() {
+    var filterDiv = document.createElement('div');
+    var selectColumn = this.createFieldSelect(this.defaultValue, this.filterAreaID, this.filterCounter, this.selectableColumns);
+    filterDiv.appendChild(selectColumn);
+
+    // Add input for minimum value
+    filterDiv.appendChild(this.createElement(
+        'input',
+        {
+            id: this.filterAreaID + this.filterCounter + 'minValue',
+            style: 'width: 80px;',
+            className: 'inputbox',
+            placeholder: 'Min'
+        }
+    ));
+
+    // Add input for maximum value
+    filterDiv.appendChild(this.createElement(
+        'input',
+        {
+            id: this.filterAreaID + this.filterCounter + 'maxValue',
+            style: 'width: 80px;',
+            className: 'inputbox',
+            placeholder: 'Max'
+        }
+    ));
+
+    // Add event listener to update the filter
+    var inputAreaChangeHandler = function() {
+        addColumnToFilter(
+            'filterArea' + this.instanceName,
+            getFilterColumnNameFromOptionValue(document.getElementById(this.filterAreaID + this.filterCounter + 'columnName').value),
+            'BETWEEN',
+            document.getElementById(this.filterAreaID + this.filterCounter + 'minValue').value + ' AND ' +
+            document.getElementById(this.filterAreaID + this.filterCounter + 'maxValue').value
+        );
+    }.bind(this);
+
+    filterDiv.addEventListener('change', inputAreaChangeHandler);
+
+    return filterDiv;
+};
